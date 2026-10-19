@@ -117,16 +117,24 @@ class MAIN:
             start_pos=(5, 10),
             direction=(1, 0)
         )
+        self.snake2 = SNAKE(
+            start_pos=(15, 10),
+            direction=(-1, 0)
+        )
         self.fruit = FRUIT()
 
     def update(self):
         self.snake.move_snake()
+        self.snake2.move_snake()
         self.check_collision()
         self.check_fail()
+        self.check_fail(self.snake)
+        self.check_fail(self.snake2)
 
     def draw_elements(self):
         self.fruit.draw_fruit()
         self.snake.draw_snake()
+        self.snake2.draw_snake()
 
     def check_collision(self):
         if self.fruit.pos == self.snake.body[0]:
@@ -134,7 +142,7 @@ class MAIN:
             self.snake.add_block()
 
 
-    def check_fail(self):
+    def check_fail(self, snake):
         if not 0 <= self.snake.body[0].x < cell_number or not 0 <= self.snake.body[0].y < cell_number:
             self.game_over()
 

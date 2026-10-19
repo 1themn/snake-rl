@@ -2,9 +2,12 @@ import pygame, sys, random
 from pygame.math import Vector2
 
 class SNAKE:
-    def __init__(self):
-        self.body = [Vector2(5,10),Vector2(4,10),Vector2(3,10),Vector2(2,10),Vector2(1,10),Vector2(0,10),Vector2(-1,10),Vector2(-2,10),Vector2(-3,10),Vector2(-4,10),Vector2(-5,10),Vector2(-6,10),Vector2(-7,10),Vector2(-8,10),Vector2(-9,10),Vector2(-10,10),Vector2(-11,10),Vector2(-12,10),Vector2(-13,10)]
-        self.direction = Vector2(1,0)
+    def __init__(self, start_pos, direction):
+        self.direction = Vector2(direction)
+        self.body = [
+            Vector2(start_pos) - i * self.direction
+            for i in range(3)
+        ]
         self.new_block = False
 
         self.head_up = pygame.image.load('Graphics/head_up.png').convert_alpha()
@@ -110,7 +113,10 @@ class FRUIT:
 
 class MAIN:
     def __init__(self):
-        self.snake = SNAKE()
+        self.snake = SNAKE(
+            start_pos=(5, 10),
+            direction=(1, 0)
+        )
         self.fruit = FRUIT()
 
     def update(self):

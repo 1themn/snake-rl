@@ -9,6 +9,7 @@ class SNAKE:
             for i in range(3)
         ]
         self.new_block = False
+        self.score = 0
 
         self.head_up = pygame.image.load('Graphics/head_up.png').convert_alpha()
         self.head_down = pygame.image.load('Graphics/head_down.png').convert_alpha()
@@ -126,8 +127,15 @@ class MAIN:
     def update(self):
         self.snake.move_snake()
         self.snake2.move_snake()
-        self.check_collision()
-        self.check_fail()
+        self.check_collision(self.snake)
+        self.check_collision(self.snake2)
+        print(
+            f"Snake 1: {self.snake.score} | "
+            f"Snake 2: {self.snake2.score}"
+        )
+        self.check_opponent_collision(self.snake, self.snake2)
+        self.check_opponent_collision(self.snake2, self.snake)
+        # self.check_fail()
         self.check_fail(self.snake)
         self.check_fail(self.snake2)
 
@@ -136,10 +144,19 @@ class MAIN:
         self.snake.draw_snake()
         self.snake2.draw_snake()
 
-    def check_collision(self):
+    def check_collision(self, snake):
         if self.fruit.pos == self.snake.body[0]:
+            snake.score += 1
             self.fruit.randomize()
-            self.snake.add_block()
+            snake.add_block()
+
+
+    def check_opponent_collision(self, snake, opponent):
+        head = snake.body[0]
+
+        for block in opponent.body:
+            if head == block:
+                self.game_over()
 
 
     def check_fail(self, snake):
@@ -156,9 +173,9 @@ class MAIN:
 
 
 cell_size = 40
-cell_number = 20
+cell_number = 22
 pygame.init()
-screen = pygame.display.set_mode((cell_number*cell_size,cell_number*cell_size))
+screen = pygame.display.set_mode((cell_number*cell_size*1.6,cell_number*cell_size))
 clock = pygame.time.Clock()
 apple = pygame.image.load('Graphics/apple.png').convert_alpha()
 

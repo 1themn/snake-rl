@@ -140,6 +140,8 @@ class FRUIT:
 class MAIN:
     def __init__(self):
         self.paused = False
+        self.game_ended = False
+        self.winner = None      
         self.algorithm1 = "BFS"
         self.algorithm2 = "A*"
         self.snake = SNAKE(
@@ -153,69 +155,89 @@ class MAIN:
         self.fruit = FRUIT([self.snake, self.snake2])
 
     def update(self):
+        if self.game_ended:
+            return
+
         previous_head1 = self.snake.body[0].copy()
         previous_head2 = self.snake2.body[0].copy()
+
+
         self.move_ai(self.snake, self.algorithm1)
         self.move_ai(self.snake2, self.algorithm2)
 
+
         self.snake.move_snake()
         self.snake2.move_snake()
-        if (
-            self.snake.body[0] == previous_head2
-            and self.snake2.body[0] == previous_head1
-        ):
-            self.game_over()
-        self.check_collision(self.snake)
-        self.check_collision(self.snake2)
-        # print(
-        #     f"Snake 1: {self.snake.score} | "
-        #     f"Snake 2: {self.snake2.score}"
-        # )
-        self.check_opponent_collision(self.snake, self.snake2)
-        self.check_opponent_collision(self.snake2, self.snake)
-        # self.check_fail()
-        self.check_fail(self.snake)
-        self.check_fail(self.snake2)
-        # for snake, algorithm in [
-        #     (self.snake, self.algorithm1),
-        #     (self.snake2, self.algorithm2)
-        # ]:
-            # print(
-            #     f"{algorithm} | "
-            #     f"Score: {snake.score} | "
-            #     f"Nodes: {snake.nodes_explored} | "
-            #     f"Time: {snake.search_time:.3f} ms | "
-            #     f"Path: {snake.path_length}"
-            # )
+
+        head1 = self.snake.body[0]
+        head2 = self.snake2.body[0]
+
+
+        snake1_lost = (
+            self.check_fail(self.snake)
+            or self.check_opponent_collision(self.snake, self.snake2)
+        )
+
+        snake2_lost = (
+            self.check_fail(self.snake2)
+            or self.check_opponent_collision(self.snake2, self.snake)
+        )
+
+
+        head_collision = head1 == head2
+
+        head_swap = (
+            head1 == previous_head2
+            and head2 == previous_head1
+        )
+
+        if head_collision or head_swap:
+            snake1_lost = True
+            snake2_lost = True
+
+
+        if snake1_lost and snake2_lost:
+            self.game_over("DRAW")
+        elif snake1_lost:
+            self.game_over("SNAKE 2")
+        elif snake2_lost:
+            self.game_over("SNAKE 1")
+        else:
+
+            self.check_collision(self.snake)
+            self.check_collision(self.snake2)
 
     def draw_elements(self):
         self.fruit.draw_fruit()
         self.snake.draw_snake()
         self.snake2.draw_snake()
         self.draw_dashboard()
+        if self.game_ended:
+            self.draw_game_over()
 
     def check_collision(self, snake):
-        if self.fruit.pos == self.snake.body[0]:
+        if self.fruit.pos == snake.body[0]:
             snake.score += 1
-            self.fruit.randomize([self.snake, self.snake2])
             snake.add_block()
+            self.fruit.randomize([self.snake, self.snake2])
 
 
     def check_opponent_collision(self, snake, opponent):
         head = snake.body[0]
 
-        for block in opponent.body:
-            if head == block:
-                self.game_over()
+        return head in opponent.body
 
 
     def check_fail(self, snake):
-        if not 0 <= self.snake.body[0].x < cell_number or not 0 <= self.snake.body[0].y < cell_number:
-            self.game_over()
+        head = snake.body[0]
 
-        for block in self.snake.body[1:]:
-            if block == self.snake.body[0]:
-                self.game_over()
+        if not (0 <= head.x < cell_number and 0 <= head.y < cell_number):
+            return True
+
+        if head in snake.body[1:]:
+            return True
+
+        return False
     
     def move_ai(self, snake, algorithm):
         start = (int(snake.body[0].x), int(snake.body[0].y))
@@ -280,6 +302,7 @@ class MAIN:
             ):
                 snake.direction = direction
                 return
+            
     def draw_dashboard(self):
         x = board_width + 20
 
@@ -294,6 +317,21 @@ class MAIN:
 
         title = font.render("AI BATTLE", True, (255, 255, 255))
         screen.blit(title, (x, 25))
+
+        if self.game_ended:
+            status = f"Winner: {self.winner}"
+        elif self.paused:
+            status = "Status: Paused"
+        else:
+            status = "Status: Running"
+
+        status_text = small_font.render(
+            status,
+            True,
+            (255, 215, 100)
+        )
+
+        screen.blit(status_text, (x, 65))
 
         snakes = [
             (self.snake, self.algorithm1, "SNAKE 1", (80, 220, 130)),
@@ -332,9 +370,56 @@ class MAIN:
                     stat, True, (220, 220, 220)
                 )
                 screen.blit(text, (x, y + 45 + j * 30))
-    def game_over(self):
-        pygame.quit()
-        sys.exit()
+        
+    def draw_game_over(self):
+        overlay = pygame.Surface((board_width, board_height))
+        overlay.set_alpha(190)
+        overlay.fill((0, 0, 0))
+
+        screen.blit(overlay, (0, 0))
+
+        title_font = pygame.font.SysFont("Arial", 48, bold=True)
+        text_font = pygame.font.SysFont("Arial", 26)
+
+        if self.winner == "DRAW":
+            message = "MATCH DRAW!"
+        else:
+            message = f"{self.winner} WINS!"
+
+        title = title_font.render(message, True, (255, 255, 255))
+
+        score = text_font.render(
+            f"BFS: {self.snake.score}  |  A*: {self.snake2.score}",
+            True,
+            (220, 220, 220)
+        )
+
+        restart = text_font.render(
+            "Press R to Restart",
+            True,
+            (180, 220, 180)
+        )
+
+        center_x = board_width // 2
+        center_y = board_height // 2
+
+        screen.blit(
+            title,
+            title.get_rect(center=(center_x, center_y - 65))
+        )
+
+        screen.blit(
+            score,
+            score.get_rect(center=(center_x, center_y))
+        )
+
+        screen.blit(
+            restart,
+            restart.get_rect(center=(center_x, center_y + 65))
+        )
+    def game_over(self, winner):
+        self.game_ended = True
+        self.winner = winner
 
 
 cell_size = 40
@@ -365,7 +450,7 @@ while True:
             pygame.quit()
             sys.exit()
         if event.type == SCREEN_UPDATE:
-            if not main_game.paused:
+            if not main_game.paused and not main_game.game_ended:
                 main_game.update()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:

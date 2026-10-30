@@ -139,6 +139,7 @@ class FRUIT:
 
 class MAIN:
     def __init__(self):
+        self.paused = False
         self.algorithm1 = "BFS"
         self.algorithm2 = "A*"
         self.snake = SNAKE(
@@ -175,22 +176,23 @@ class MAIN:
         # self.check_fail()
         self.check_fail(self.snake)
         self.check_fail(self.snake2)
-        for snake, algorithm in [
-            (self.snake, self.algorithm1),
-            (self.snake2, self.algorithm2)
-        ]:
-            print(
-                f"{algorithm} | "
-                f"Score: {snake.score} | "
-                f"Nodes: {snake.nodes_explored} | "
-                f"Time: {snake.search_time:.3f} ms | "
-                f"Path: {snake.path_length}"
-            )
+        # for snake, algorithm in [
+        #     (self.snake, self.algorithm1),
+        #     (self.snake2, self.algorithm2)
+        # ]:
+            # print(
+            #     f"{algorithm} | "
+            #     f"Score: {snake.score} | "
+            #     f"Nodes: {snake.nodes_explored} | "
+            #     f"Time: {snake.search_time:.3f} ms | "
+            #     f"Path: {snake.path_length}"
+            # )
 
     def draw_elements(self):
         self.fruit.draw_fruit()
         self.snake.draw_snake()
         self.snake2.draw_snake()
+        self.draw_dashboard()
 
     def check_collision(self, snake):
         if self.fruit.pos == self.snake.body[0]:
@@ -278,6 +280,58 @@ class MAIN:
             ):
                 snake.direction = direction
                 return
+    def draw_dashboard(self):
+        x = board_width + 20
+
+        pygame.draw.rect(
+            screen,
+            (30, 35, 45),
+            (board_width, 0, dashboard_width, board_height)
+        )
+
+        font = pygame.font.SysFont("Arial", 24, bold=True)
+        small_font = pygame.font.SysFont("Arial", 19)
+
+        title = font.render("AI BATTLE", True, (255, 255, 255))
+        screen.blit(title, (x, 25))
+
+        snakes = [
+            (self.snake, self.algorithm1, "SNAKE 1", (80, 220, 130)),
+            (self.snake2, self.algorithm2, "SNAKE 2", (90, 150, 255))
+        ]
+
+        for i, (snake, algorithm, name, color) in enumerate(snakes):
+            y = 100 + i * 300
+
+            heading = font.render(
+                f"{name} - {algorithm}", True, color
+            )
+            screen.blit(heading, (x, y))
+
+            avg_time = (
+                snake.total_search_time / snake.search_count
+                if snake.search_count > 0 else 0
+            )
+
+            avg_nodes = (
+                snake.total_nodes_explored / snake.search_count
+                if snake.search_count > 0 else 0
+            )
+
+            stats = [
+                f"Score: {snake.score}",
+                f"Nodes explored: {snake.nodes_explored}",
+                f"Search time: {snake.search_time:.3f} ms",
+                f"Path length: {snake.path_length}",
+                f"Avg. nodes: {avg_nodes:.1f}",
+                f"Avg. time: {avg_time:.3f} ms"
+            ]
+
+            for j, stat in enumerate(stats):
+                text = small_font.render(
+                    stat, True, (220, 220, 220)
+                )
+                screen.blit(text, (x, y + 45 + j * 30))
     def game_over(self):
         pygame.quit()
         sys.exit()
@@ -286,7 +340,15 @@ class MAIN:
 cell_size = 40
 cell_number = 22
 pygame.init()
-screen = pygame.display.set_mode((cell_number*cell_size*1.6,cell_number*cell_size))
+board_width = cell_number * cell_size
+board_height = cell_number * cell_size
+dashboard_width = 300
+
+screen = pygame.display.set_mode(
+    (board_width + dashboard_width, board_height)
+)
+
+pygame.display.set_caption("Snake AI Battle - BFS vs A*")
 clock = pygame.time.Clock()
 apple = pygame.image.load('Graphics/apple.png').convert_alpha()
 
@@ -294,6 +356,7 @@ main_game = MAIN()
 
 
 SCREEN_UPDATE = pygame.USEREVENT
+
 pygame.time.set_timer(SCREEN_UPDATE, 150)
 
 while True:
@@ -302,8 +365,13 @@ while True:
             pygame.quit()
             sys.exit()
         if event.type == SCREEN_UPDATE:
-            main_game.update()
+            if not main_game.paused:
+                main_game.update()
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                main_game.paused = not main_game.paused
+            if event.key == pygame.K_r:
+                main_game = MAIN()
             if event.key == pygame.K_UP:
                 if main_game.snake.direction.y !=1:
                     main_game.snake.direction = Vector2(0,-1) 
